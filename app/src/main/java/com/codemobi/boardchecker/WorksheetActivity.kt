@@ -129,7 +129,7 @@ class WorksheetActivity : AppCompatActivity() {
         else if (requestCode == REQUEST_SEND_PICTURE && resultCode == RESULT_OK) {
             Snackbar.make(fab, "Send Successfully", Snackbar.LENGTH_LONG)
                     .setAction("Action", null).show()
-            setWorksheet()
+            getWorksheetInfo(mWorksheetID)
         }
     }
 
