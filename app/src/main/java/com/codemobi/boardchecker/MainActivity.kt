@@ -1,10 +1,15 @@
 package com.codemobi.boardchecker
 
+import android.content.Context
 import android.content.Intent
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.view.ContextMenu
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
 import android.widget.Toast
-import com.codemobi.boardchecker.adapter.ProjectAdapter
+import com.codemobi.boardchecker.adapter.WorksheetAdapter
 import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.FuelManager
 import com.github.kittinunf.result.Result
@@ -17,9 +22,9 @@ class MainActivity : AppCompatActivity() {
 
     private val LOG_TAG = "MainActivity"
 
-    private val BASE_PATH = "http://192.168.1.120:4000"
+    private val BASE_PATH = "http://192.168.1.113:4000"
 
-    var projectListItems: ArrayList<Project>? = null
+    var worksheetListItems: ArrayList<Worksheet>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,11 +39,30 @@ class MainActivity : AppCompatActivity() {
             integrator.initiateScan()
         }
 
-        getProjects()
+        getWorksheets()
     }
 
     fun toast(text: String) {
         Toast.makeText(this@MainActivity, text, Toast.LENGTH_LONG).show()
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        return when (item.itemId) {
+            R.id.action_login -> {
+                goLogin()
+                return true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -48,20 +72,37 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this@MainActivity, "Cancelled", Toast.LENGTH_LONG).show()
             } else {
                 toast(result.contents)
-                openProject(result.contents)
+                openWorksheet(result.contents)
             }
         } else {
+            if (requestCode == LoginActivity.REQUEST_CODE) {
+                getWorksheets()
+            }
             super.onActivityResult(requestCode, resultCode, data)
         }
     }
 
-    private fun getProjects() {
-        Fuel.get("/api/projects").responseObject(Projects.Deserializer()) { request, response, result ->
+    fun goLogin() {
+        val intent = Intent(this, LoginActivity::class.java).apply {  }
+        startActivityForResult(intent, LoginActivity.REQUEST_CODE)
+    }
+
+    private fun getWorksheets() {
+        val sharedPref = this.getSharedPreferences("com.codemobi.boardchecker", Context.MODE_PRIVATE) ?: return
+        val teamID = sharedPref.getString(LoginActivity.TEAM_ID, "")
+        if (teamID == "") {
+            goLogin()
+            return
+        }
+
+        setTitle("Board Checker - Team ID : " + teamID)
+
+        Fuel.get("/api/team/$teamID/worksheets").responseObject(Worksheets.Deserializer()) { request, response, result ->
             when (result) {
                 is Result.Success -> {
                     val (model, _) = result
-                    projectListItems = model?.projects
-                    setProjects()
+                    worksheetListItems = model?.worksheets
+                    setWorksheets()
                 }
                 is Result.Failure -> {
                     Toast.makeText(this@MainActivity, "Data Not Found", Toast.LENGTH_LONG).show()
@@ -70,18 +111,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setProjects() {
-        val adapter = ProjectAdapter(baseContext, projectListItems!!)
+    private fun setWorksheets() {
+        val adapter = WorksheetAdapter(baseContext, worksheetListItems!!)
         projectListView.adapter = adapter
         projectListView.setOnItemClickListener { parent, view, position, id ->
-            val selectedProjectID = projectListItems?.get(position)?.id
-            openProject("$selectedProjectID")
+            val selectedWorksheetID = worksheetListItems?.get(position)?.id
+            openWorksheet("$selectedWorksheetID")
         }
     }
 
-    fun openProject(id: String) {
-        val intent = Intent(this, ProjectActivity::class.java).apply {
-            putExtra(ProjectActivity.EXTRA_ID, id)
+    fun openWorksheet(id: String) {
+        val intent = Intent(this, WorksheetActivity::class.java).apply {
+            putExtra(WorksheetActivity.EXTRA_ID, id)
         }
         startActivity(intent)
     }

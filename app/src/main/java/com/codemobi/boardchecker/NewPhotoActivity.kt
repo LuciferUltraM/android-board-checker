@@ -1,5 +1,6 @@
 package com.codemobi.boardchecker
 
+import android.app.ProgressDialog
 import android.os.Bundle
 import android.provider.MediaStore
 import android.support.design.widget.Snackbar
@@ -17,7 +18,7 @@ class NewPhotoActivity : AppCompatActivity() {
 
     val LOG_TAG = "NewPhotoActivity"
 
-    var mProjectID: String = ""
+    var mWorksheetID: String = ""
     var mCurrentPhotoPath: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,7 +26,7 @@ class NewPhotoActivity : AppCompatActivity() {
         setContentView(R.layout.activity_new_photo)
         setSupportActionBar(toolbar)
 
-        mProjectID = intent.getStringExtra(ProjectActivity.EXTRA_ID)
+        mWorksheetID = intent.getStringExtra(WorksheetActivity.EXTRA_ID)
         mCurrentPhotoPath = intent.getStringExtra(MediaStore.EXTRA_OUTPUT)
 
         Log.d(LOG_TAG, "photoPath : $mCurrentPhotoPath")
@@ -38,18 +39,19 @@ class NewPhotoActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle?) {
         super.onSaveInstanceState(outState)
-        outState?.putString("ID", mProjectID)
+        outState?.putString("ID", mWorksheetID)
         outState?.putString("PHOTO_PATH", mCurrentPhotoPath)
     }
 
     override fun onRestoreInstanceState(savedInstanceState: Bundle?) {
         super.onRestoreInstanceState(savedInstanceState)
-        mProjectID = savedInstanceState!!.getString("ID")
+        mWorksheetID = savedInstanceState!!.getString("ID")
         mCurrentPhotoPath = savedInstanceState!!.getString("PHOTO_PATH")
     }
 
     private fun sendPhoto() {
-        Fuel.upload("/api/project/$mProjectID/photo/new", Method.POST)
+        val loadingDialog = ProgressDialog.show(this, "Fetch photos", "Loading...", true, false)
+        Fuel.upload("/api/worksheet/$mWorksheetID/photo/new", Method.POST)
                 .source { request, url ->
                     File(mCurrentPhotoPath)
                 }.name {
@@ -57,6 +59,7 @@ class NewPhotoActivity : AppCompatActivity() {
 //                }.progress { readBytes, totalBytes ->
 //                    val progress = readBytes.toFloat() / totalBytes.toFloat()
                 }.responseString { request, response, result ->
+                    loadingDialog.dismiss()
                     when(result) {
                         is Result.Success -> {
                             Log.d(LOG_TAG, result.get())

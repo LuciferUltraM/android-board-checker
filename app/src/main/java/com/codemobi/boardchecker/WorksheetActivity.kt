@@ -1,6 +1,5 @@
 package com.codemobi.boardchecker
 
-import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.support.v7.app.AppCompatActivity
@@ -10,32 +9,28 @@ import android.provider.MediaStore
 import android.support.design.widget.Snackbar
 import android.support.v4.content.FileProvider
 import android.util.Log
-import android.view.View
-import android.widget.ArrayAdapter
 import android.widget.Toast
-import com.bumptech.glide.Glide
 import com.codemobi.boardchecker.adapter.PhotoAdapter
 import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.core.Method
 import com.github.kittinunf.result.Result
-import kotlinx.android.synthetic.main.activity_project.*
-import kotlinx.android.synthetic.main.content_project.*
+import kotlinx.android.synthetic.main.activity_worksheet.*
+import kotlinx.android.synthetic.main.content_worksheet.*
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 
-class ProjectActivity : AppCompatActivity() {
+class WorksheetActivity : AppCompatActivity() {
      companion object {
          const val EXTRA_ID = "EXTRA_ID"
      }
 
-    private val LOG_TAG = "ProjectActivity"
+    private val LOG_TAG = "WorksheetActivity"
     val REQUEST_IMAGE_CAPTURE = 1
     val REQUEST_TAKE_PHOTO = 1
     val REQUEST_SEND_PICTURE = 200
 
-    var mProjectID: String = ""
+    var mWorksheetID: String = ""
     var mCurrentPhotoPath: String = ""
 
     var model: Model? = null
@@ -43,10 +38,10 @@ class ProjectActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_project)
+        setContentView(R.layout.activity_worksheet)
 
-        mProjectID = intent.getStringExtra(EXTRA_ID)
-        getProjectInfo(mProjectID)
+        mWorksheetID = intent.getStringExtra(EXTRA_ID)
+        getWorksheetInfo(mWorksheetID)
 
         fab.setOnClickListener{
             dispatchTakePictureIntent()
@@ -55,19 +50,19 @@ class ProjectActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle?) {
         super.onSaveInstanceState(outState)
-        outState?.putString("ID", mProjectID)
+        outState?.putString("ID", mWorksheetID)
         outState?.putString("PHOTO_PATH", mCurrentPhotoPath)
     }
 
     override fun onRestoreInstanceState(savedInstanceState: Bundle?) {
         super.onRestoreInstanceState(savedInstanceState)
-        mProjectID = savedInstanceState!!.getString("ID")
+        mWorksheetID = savedInstanceState!!.getString("ID")
         mCurrentPhotoPath = savedInstanceState!!.getString("PHOTO_PATH")
-        getProjectInfo(mProjectID)
+        getWorksheetInfo(mWorksheetID)
     }
 
-    private fun getProjectInfo(id: String) {
-        Fuel.get("/api/project/$id").responseObject(Model.Deserializer()){ request, response, result ->
+    private fun getWorksheetInfo(id: String) {
+        Fuel.get("/api/worksheet/$id").responseObject(Model.Deserializer()){ request, response, result ->
             when(result){
                 is Result.Success -> {
                     val (modelResult, _) = result
@@ -76,22 +71,22 @@ class ProjectActivity : AppCompatActivity() {
                     }
                     photoListItems = modelResult?.photos
                     model = modelResult
-                    setProject()
+                    setWorksheet()
                 }
                 is Result.Failure -> {
-                    Toast.makeText(this@ProjectActivity, "Project Not Found", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@WorksheetActivity, "Worksheet Not Found", Toast.LENGTH_LONG).show()
                 }
             }
         }
     }
 
-    private fun setProject() {
-        val project = model?.project
-        if (model?.project == null) {
+    private fun setWorksheet() {
+        val worksheet = model?.worksheet
+        if (model?.worksheet == null) {
             finish()
         }
 
-        supportActionBar?.setTitle("No. ${project?.id} - ${project?.name}")
+        supportActionBar?.setTitle("No. ${worksheet?.number} - ${worksheet?.name}")
 
         val adpater = PhotoAdapter(baseContext, model?.photos!!)
         photoListView.adapter = adpater
@@ -126,7 +121,7 @@ class ProjectActivity : AppCompatActivity() {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
             galleryAddPic()
             val intent = Intent(this, NewPhotoActivity::class.java).apply {
-                putExtra(EXTRA_ID, mProjectID)
+                putExtra(EXTRA_ID, mWorksheetID)
                 putExtra(MediaStore.EXTRA_OUTPUT, mCurrentPhotoPath)
             }
             startActivityForResult(intent, REQUEST_SEND_PICTURE)
@@ -134,7 +129,7 @@ class ProjectActivity : AppCompatActivity() {
         else if (requestCode == REQUEST_SEND_PICTURE && resultCode == RESULT_OK) {
             Snackbar.make(fab, "Send Successfully", Snackbar.LENGTH_LONG)
                     .setAction("Action", null).show()
-            setProject()
+            setWorksheet()
         }
     }
 

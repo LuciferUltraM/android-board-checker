@@ -28,6 +28,7 @@ class PhotoAdapter(private  val context: Context,
         Glide.with(context).load(photo.fileURL).into(imageView)
         textViewNo.setText("No. ${photo.runningNumber}")
         textViewCreated.setText(photo.created.toString())
+        textViewCreated.visibility = View.GONE
 
         return rowView
     }

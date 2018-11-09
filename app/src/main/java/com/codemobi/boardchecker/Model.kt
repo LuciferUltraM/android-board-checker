@@ -6,18 +6,18 @@ import java.util.*
 import kotlin.collections.ArrayList
 
 
-data class Projects(var projects: ArrayList<Project>) {
-    class Deserializer: ResponseDeserializable<Projects>{
-        override fun deserialize(content: String): Projects? = Gson().fromJson(content, Projects::class.java)
+data class Worksheets(var worksheets: ArrayList<Worksheet>) {
+    class Deserializer: ResponseDeserializable<Worksheets>{
+        override fun deserialize(content: String): Worksheets? = Gson().fromJson(content, Worksheets::class.java)
     }
 }
 
-data class Model(var project: Project, var photos: ArrayList<Photo>) {
+data class Model(var worksheet: Worksheet, var photos: ArrayList<Photo>) {
     class Deserializer: ResponseDeserializable<Model>{
         override fun deserialize(content: String): Model? = Gson().fromJson(content, Model::class.java)
     }
 }
 
-data class Project(var id:Int, var name: String, var fileURL: String, var created: Date)
+data class Worksheet(var id:Int, var number: String, var name: String, var created: Date)
 
 data class Photo(var id:Int, var runningNumber: Int, var fileURL: String, var created: Date)

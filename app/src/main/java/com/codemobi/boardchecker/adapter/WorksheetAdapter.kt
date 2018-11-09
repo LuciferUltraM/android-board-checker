@@ -9,32 +9,31 @@ import android.widget.ImageView
 import android.widget.TextView
 import com.bumptech.glide.Glide
 import com.codemobi.boardchecker.Photo
-import com.codemobi.boardchecker.Project
+import com.codemobi.boardchecker.Worksheet
 import com.codemobi.boardchecker.R
 
-class ProjectAdapter(private  val context: Context,
-                     private val dataSource: ArrayList<Project>) : BaseAdapter() {
+class WorksheetAdapter(private  val context: Context,
+                       private val dataSource: ArrayList<Worksheet>) : BaseAdapter() {
 
     private val inflater: LayoutInflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
-        val rowView = inflater.inflate(R.layout.list_item_photo, parent, false)
+        val rowView = inflater.inflate(R.layout.list_item_worksheet, parent, false)
 
-        val imageView = rowView.findViewById<ImageView>(R.id.imageView)
         val textViewNo = rowView.findViewById<TextView>(R.id.textViewNo)
+        val textViewName = rowView.findViewById<TextView>(R.id.textViewName)
         val textViewCreated = rowView.findViewById<TextView>(R.id.textViewCreated)
 
-        val project = getItem(position)
+        val worksheet = getItem(position)
 
-
-        Glide.with(context).load(project.fileURL).into(imageView)
-        textViewNo.setText("No. ${project.id} - ${project.name}")
-        textViewCreated.setText(project.created.toString())
+        textViewNo.setText("หมายเลขใบงาน : ${worksheet.number}")
+        textViewName.setText("ชื่อโครงการ : ${worksheet.name}")
+        textViewCreated.setText(worksheet.created.toString())
 
         return rowView
     }
 
-    override fun getItem(position: Int): Project {
+    override fun getItem(position: Int): Worksheet {
         return dataSource.get(position)
     }
 
