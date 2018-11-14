@@ -22,7 +22,7 @@ class MainActivity : AppCompatActivity() {
 
     private val LOG_TAG = "MainActivity"
 
-    private val BASE_PATH = "http://192.168.1.113:4000"
+    private val BASE_PATH = "http://ps.code-mobi.com"
 
     var worksheetListItems: ArrayList<Worksheet>? = null
 
