@@ -78,5 +78,4 @@ class NewPhotoActivity : AppCompatActivity() {
                 }
 
     }
-
 }

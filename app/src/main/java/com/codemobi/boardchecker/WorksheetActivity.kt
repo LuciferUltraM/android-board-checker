@@ -1,6 +1,7 @@
 package com.codemobi.boardchecker
 
 import android.content.Intent
+import android.graphics.*
 import android.net.Uri
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
@@ -19,6 +20,9 @@ import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
+import android.graphics.Bitmap
+import java.io.FileOutputStream
+
 
 class WorksheetActivity : AppCompatActivity() {
      companion object {
@@ -110,6 +114,7 @@ class WorksheetActivity : AppCompatActivity() {
                             "com.codemobi.boardchecker.fileprovider",
                             it
                     )
+
                     takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
                     startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO)
                 }
@@ -120,8 +125,18 @@ class WorksheetActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
             galleryAddPic()
+            MediaStore.Images.Media.insertImage(
+                    applicationContext.contentResolver,
+                    mCurrentPhotoPath,
+                    "Board Checker",
+                    "Test"
+            )
             val intent = Intent(this, NewPhotoActivity::class.java).apply {
                 putExtra(EXTRA_ID, mWorksheetID)
+
+                val timeStamp: String = SimpleDateFormat("yyyy/MM/dd HH:mm").format(Date())
+                val processedBitmap = drawTextToBitmap(mCurrentPhotoPath,timeStamp)
+                saveImage(processedBitmap, mCurrentPhotoPath)
                 putExtra(MediaStore.EXTRA_OUTPUT, mCurrentPhotoPath)
             }
             startActivityForResult(intent, REQUEST_SEND_PICTURE)
@@ -154,6 +169,55 @@ class WorksheetActivity : AppCompatActivity() {
             mediaScanIntent.data = Uri.fromFile(f)
             sendBroadcast(mediaScanIntent)
         }
+    }
+
+    fun drawTextToBitmap(imagePath: String,
+                         gText: String): Bitmap {
+        val scale = resources.getDisplayMetrics().density
+        var bitmap = BitmapFactory.decodeFile(imagePath)
+
+        var bitmapConfig: android.graphics.Bitmap.Config? = bitmap.config
+        // set default bitmap config if none
+        if (bitmapConfig == null) {
+            bitmapConfig = android.graphics.Bitmap.Config.ARGB_8888
+        }
+        // resource bitmaps are imutable,
+        // so we need to convert it to mutable one
+        bitmap = bitmap.copy(bitmapConfig, true)
+
+        val canvas = Canvas(bitmap)
+        // new antialised Paint
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        // text color - #3D3D3D
+        paint.setColor(Color.rgb(255, 255, 255))
+        // text size in pixels
+        paint.setTextSize(42 * scale)
+        // text shadow
+        paint.setShadowLayer(1f, 0f, 1f, Color.WHITE)
+
+        // draw text to the Canvas center
+        val bounds = Rect()
+        paint.getTextBounds(gText, 0, gText.length, bounds)
+        val x = ((bitmap.width - bounds.width()) / 2).toFloat()
+        val y = ((bitmap.height + bounds.height()) / 2).toFloat()
+
+        canvas.drawText(gText, (bitmap.width - bounds.width() - (50 * scale)), (bitmap.height - bounds.height()).toFloat(), paint)
+
+        return bitmap
+    }
+
+    private fun saveImage(finalBitmap: Bitmap, toPath: String) {
+        val file = File(toPath)
+        if (file.exists()) file.delete()
+        try {
+            val out = FileOutputStream(file)
+            finalBitmap.compress(Bitmap.CompressFormat.JPEG, 100, out)
+            out.flush()
+            out.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
     }
 }
 
