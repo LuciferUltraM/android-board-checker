@@ -198,8 +198,6 @@ class WorksheetActivity : AppCompatActivity() {
         // draw text to the Canvas center
         val bounds = Rect()
         paint.getTextBounds(gText, 0, gText.length, bounds)
-        val x = ((bitmap.width - bounds.width()) / 2).toFloat()
-        val y = ((bitmap.height + bounds.height()) / 2).toFloat()
 
         canvas.drawText(gText, (bitmap.width - bounds.width() - (50 * scale)), (bitmap.height - bounds.height()).toFloat(), paint)
 
