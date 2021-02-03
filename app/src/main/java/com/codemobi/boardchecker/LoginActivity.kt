@@ -37,23 +37,38 @@ class LoginActivity : AppCompatActivity() {
     companion object {
         const val REQUEST_CODE = 1001
         const val TEAM_ID = "TEAM_ID"
+        const val DATE_EMBED = "DATE_EMBED"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
         // Set up the login form.
-        val sharedPref = this.getSharedPreferences("com.codemobi.boardchecker", Context.MODE_PRIVATE) ?: return
+        val sharedPref = this.getSharedPreferences("com.codemobi.boardchecker", Context.MODE_PRIVATE)
+                ?: return
         val teamID = sharedPref.getString(TEAM_ID, "")
+        val dateEmbed = sharedPref.getBoolean(DATE_EMBED, true)
         textViewTeamID.setText(teamID)
+        switchDateEmbed.isChecked = dateEmbed
 
         buttonSignIn.setOnClickListener { attemptLogin() }
+
+        switchDateEmbed.setOnClickListener {
+            val sharedPref = this.getSharedPreferences("com.codemobi.boardchecker", Context.MODE_PRIVATE)
+            with(sharedPref.edit()) {
+                putBoolean(DATE_EMBED, switchDateEmbed.isChecked)
+                commit()
+            }
+        }
+
     }
 
     fun attemptLogin() {
-        val sharedPref = this.getSharedPreferences("com.codemobi.boardchecker", Context.MODE_PRIVATE) ?: return
-        with (sharedPref.edit()) {
+        val sharedPref = this.getSharedPreferences("com.codemobi.boardchecker", Context.MODE_PRIVATE)
+                ?: return
+        with(sharedPref.edit()) {
             putString(TEAM_ID, textViewTeamID.text.toString())
+            putBoolean(DATE_EMBED, switchDateEmbed.isChecked)
             commit()
         }
         finish()

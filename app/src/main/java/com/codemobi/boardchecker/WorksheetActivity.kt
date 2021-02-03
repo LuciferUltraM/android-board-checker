@@ -1,5 +1,6 @@
 package com.codemobi.boardchecker
 
+import android.content.Context
 import android.content.Intent
 import android.graphics.*
 import android.net.Uri
@@ -21,17 +22,26 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 import android.graphics.Bitmap
+import org.apache.sanselan.Sanselan
 import java.io.FileOutputStream
+import org.apache.sanselan.formats.jpeg.JpegImageMetadata
+import org.apache.sanselan.common.IImageMetadata
+import org.apache.sanselan.formats.jpeg.exifRewrite.ExifRewriter
+import org.apache.sanselan.formats.tiff.TiffImageMetadata
+import org.apache.sanselan.formats.tiff.write.TiffOutputSet
+import java.io.ByteArrayOutputStream
+import java.nio.file.Files
 
 
 class WorksheetActivity : AppCompatActivity() {
-     companion object {
-         const val EXTRA_ID = "EXTRA_ID"
-     }
+    companion object {
+        const val EXTRA_ID = "EXTRA_ID"
+    }
 
     private val LOG_TAG = "WorksheetActivity"
     val REQUEST_IMAGE_CAPTURE = 1
     val REQUEST_TAKE_PHOTO = 1
+    val REQUEST_GALLERY = 2
     val REQUEST_SEND_PICTURE = 200
 
     var mWorksheetID: String = ""
@@ -39,6 +49,7 @@ class WorksheetActivity : AppCompatActivity() {
 
     var model: Model? = null
     var photoListItems: ArrayList<Photo>? = null
+    var dateEmbed = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,9 +58,14 @@ class WorksheetActivity : AppCompatActivity() {
         mWorksheetID = intent.getStringExtra(EXTRA_ID)
         getWorksheetInfo(mWorksheetID)
 
-        fab.setOnClickListener{
+        fab.setOnClickListener {
             dispatchTakePictureIntent()
         }
+        fabGallery.setOnClickListener {
+            choosePhotoFromGallary()
+        }
+        val sharedPref = this.getSharedPreferences("com.codemobi.boardchecker", Context.MODE_PRIVATE) ?: return
+        dateEmbed = sharedPref.getBoolean(LoginActivity.DATE_EMBED, true)
     }
 
     override fun onSaveInstanceState(outState: Bundle?) {
@@ -66,8 +82,8 @@ class WorksheetActivity : AppCompatActivity() {
     }
 
     private fun getWorksheetInfo(id: String) {
-        Fuel.get("/api/worksheet/$id").responseObject(Model.Deserializer()){ request, response, result ->
-            when(result){
+        Fuel.get("/api/worksheet/$id").responseObject(Model.Deserializer()) { request, response, result ->
+            when (result) {
                 is Result.Success -> {
                     val (modelResult, _) = result
                     modelResult?.photos?.forEach { file ->
@@ -122,6 +138,13 @@ class WorksheetActivity : AppCompatActivity() {
         }
     }
 
+    fun choosePhotoFromGallary() {
+        val galleryIntent = Intent(Intent.ACTION_PICK,
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+
+        startActivityForResult(galleryIntent, REQUEST_GALLERY)
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
             galleryAddPic()
@@ -133,19 +156,61 @@ class WorksheetActivity : AppCompatActivity() {
             )
             val intent = Intent(this, NewPhotoActivity::class.java).apply {
                 putExtra(EXTRA_ID, mWorksheetID)
-
-                val timeStamp: String = SimpleDateFormat("yyyy/MM/dd HH:mm").format(Date())
-                val processedBitmap = drawTextToBitmap(mCurrentPhotoPath,timeStamp)
-                saveImage(processedBitmap, mCurrentPhotoPath)
+                if (dateEmbed) {
+                    val timeStamp: String = SimpleDateFormat("yyyy/MM/dd HH:mm").format(Date())
+                    val processedBitmap = drawTextToBitmap(mCurrentPhotoPath, timeStamp)
+                    saveImage(processedBitmap, mCurrentPhotoPath)
+                }else {
+                    var bitmap = BitmapFactory.decodeFile(mCurrentPhotoPath)
+                    saveImage(bitmap, mCurrentPhotoPath)
+                }
                 putExtra(MediaStore.EXTRA_OUTPUT, mCurrentPhotoPath)
             }
             startActivityForResult(intent, REQUEST_SEND_PICTURE)
-        }
-        else if (requestCode == REQUEST_SEND_PICTURE && resultCode == RESULT_OK) {
+        } else if (requestCode == REQUEST_SEND_PICTURE && resultCode == RESULT_OK) {
             Snackbar.make(fab, "Send Successfully", Snackbar.LENGTH_LONG)
                     .setAction("Action", null).show()
             getWorksheetInfo(mWorksheetID)
+        } else if (requestCode == REQUEST_GALLERY && resultCode == RESULT_OK) {
+            data?.data?.let {
+                val contentURI = getPathFromURI(it)
+                contentURI?.let {
+                    MediaStore.Images.Media.insertImage(
+                            applicationContext.contentResolver,
+                            it,
+                            "",
+                            ""
+                    )
+
+                    val intent = Intent(this, NewPhotoActivity::class.java).apply {
+                        putExtra(EXTRA_ID, mWorksheetID)
+                        if (dateEmbed) {
+                            val timeStamp: String = SimpleDateFormat("yyyy/MM/dd HH:mm").format(Date())
+                            val processedBitmap = drawTextToBitmap(contentURI, timeStamp)
+                            saveImage(processedBitmap, it)
+                        } else {
+                            var bitmap = BitmapFactory.decodeFile(contentURI)
+                            saveImage(bitmap, it)
+                        }
+                        putExtra(MediaStore.EXTRA_OUTPUT, it)
+                    }
+
+                    startActivityForResult(intent, REQUEST_SEND_PICTURE)
+                }
+            }
         }
+    }
+
+    fun getPathFromURI(contentUri: Uri): String? {
+        var res: String? = null
+        val proj = arrayOf(MediaStore.Images.Media.DATA)
+        val cursor = applicationContext.contentResolver.query(contentUri, proj, null, null, null)
+        if (cursor!!.moveToFirst()) {
+            val column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
+            res = cursor.getString(column_index)
+        }
+        cursor.close()
+        return res
     }
 
     @Throws(IOException::class)
@@ -199,19 +264,41 @@ class WorksheetActivity : AppCompatActivity() {
         val bounds = Rect()
         paint.getTextBounds(gText, 0, gText.length, bounds)
 
+
         canvas.drawText(gText, (bitmap.width - bounds.width() - (50 * scale)), (bitmap.height - bounds.height()).toFloat(), paint)
 
         return bitmap
     }
 
     private fun saveImage(finalBitmap: Bitmap, toPath: String) {
+        var bos = ByteArrayOutputStream()
+        finalBitmap.compress(Bitmap.CompressFormat.JPEG, 100, bos)
+        var data = bos.toByteArray()
+
+        var outputSet: TiffOutputSet? = null
+        val metadata = Sanselan.getMetadata(File(toPath))
+        val jpegMetadata = metadata as JpegImageMetadata
+        if (null != jpegMetadata) {
+            val exif = jpegMetadata.exif
+            if (null != exif) {
+                outputSet = exif.outputSet
+            }
+        }
+
+        if (outputSet != null) {
+            bos.flush()
+            bos.close()
+            bos = ByteArrayOutputStream()
+            val er = ExifRewriter()
+            er.updateExifMetadataLossless(data, bos, outputSet)
+            data = bos.toByteArray()
+        }
+
         val file = File(toPath)
         if (file.exists()) file.delete()
         try {
-            val out = FileOutputStream(file)
-            finalBitmap.compress(Bitmap.CompressFormat.JPEG, 100, out)
-            out.flush()
-            out.close()
+            val stream = FileOutputStream(file)
+            stream.write(data)
         } catch (e: Exception) {
             e.printStackTrace()
         }

@@ -14,7 +14,7 @@ import com.github.kittinunf.result.Result
 import kotlinx.android.synthetic.main.activity_new_photo.*
 import java.io.File
 
-class NewPhotoActivity : AppCompatActivity() {
+class  NewPhotoActivity : AppCompatActivity() {
 
     val LOG_TAG = "NewPhotoActivity"
 
@@ -25,6 +25,7 @@ class NewPhotoActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_new_photo)
         setSupportActionBar(toolbar)
+        setTitle("Upload New Photo")
 
         mWorksheetID = intent.getStringExtra(WorksheetActivity.EXTRA_ID)
         mCurrentPhotoPath = intent.getStringExtra(MediaStore.EXTRA_OUTPUT)
@@ -56,8 +57,6 @@ class NewPhotoActivity : AppCompatActivity() {
                     File(mCurrentPhotoPath)
                 }.name {
                     "uploadFile"
-//                }.progress { readBytes, totalBytes ->
-//                    val progress = readBytes.toFloat() / totalBytes.toFloat()
                 }.responseString { request, response, result ->
                     loadingDialog.dismiss()
                     when(result) {

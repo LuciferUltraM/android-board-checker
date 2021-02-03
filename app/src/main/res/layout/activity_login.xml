@@ -17,8 +17,19 @@
         android:layout_height="wrap_content"
         android:hint="Team ID"
         android:inputType="text"
-        android:maxLines="1"
-        />
+        android:maxLines="1" />
+
+    <Switch
+        android:id="@+id/switchDateEmbed"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="20dp"
+        android:checked="true"
+        android:switchMinWidth="56dp"
+        android:text="แสดงวันที่บนรูปถ่าย :"
+        android:textOff="OFF"
+        android:textOn="ON" />
 
 
     <Button
